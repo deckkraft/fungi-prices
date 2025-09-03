@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .item { border: 1px solid #ccc; padding: 10px; margin: 10px 0; }
+        #debug { background: #f0f0f0; padding: 10px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>CSV Debug Test</h1>
+    <div id="debug"></div>
+    <div id="items"></div>
+
+    <script>
+        const debug = document.getElementById('debug');
+        const itemsDiv = document.getElementById('items');
+
+        async function test() {
+            debug.innerHTML = 'Starting...';
+            
+            try {
+                debug.innerHTML += '<br>Fetching CSV...';
+                const response = await fetch('items.csv');
+                debug.innerHTML += '<br>Response status: ' + response.status;
+                
+                if (!response.ok) {
+                    debug.innerHTML += '<br>ERROR: Response not OK';
+                    return;
+                }
+                
+                const text = await response.text();
+                debug.innerHTML += '<br>CSV loaded, length: ' + text.length;
+                debug.innerHTML += '<br>First 200 chars: ' + text.substring(0, 200);
+                
+                const lines = text.split(/\r?\n/);
+                debug.innerHTML += '<br>Lines found: ' + lines.length;
+                debug.innerHTML += '<br>Header: ' + lines[0];
+                
+                // Simple parsing
+                const items = [];
+                const headers = lines[0].split(',');
+                debug.innerHTML += '<br>Headers: ' + JSON.stringify(headers);
+                
+                for (let i = 1; i < Math.min(6, lines.length); i++) {
+                    if (lines[i].trim()) {
+                        const values = lines[i].split(',');
+                        items.push({
+                            sku: values[0],
+                            title: values[1], 
+                            author: values[2],
+                            brand: values[3],
+                            price: values[4]
+                        });
+                    }
+                }
+                
+                debug.innerHTML += '<br>Parsed ' + items.length + ' items';
+                
+                // Display items
+                let html = '';
+                items.forEach(item => {
+                    html += '<div class="item">' +
+                        '<strong>' + item.title + '</strong><br>' +
+                        'SKU: ' + item.sku + '<br>' +
+                        'Author: ' + item.author + '<br>' +
+                        'Brand: ' + item.brand + '<br>' +
+                        'Price: ' + item.price +
+                        '</div>';
+                });
+                itemsDiv.innerHTML = html;
+                
+                debug.innerHTML += '<br>SUCCESS!';
+                
+            } catch (error) {
+                debug.innerHTML += '<br>ERROR: ' + error.message;
+                console.error('Error:', error);
+            }
+        }
+        
+        test();
+    </script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-SKU,title,author,brand,price
+sku,title,author,brand,price
 CV001,Album,Sophie Taeuber-Arp,,120
 CV002,How to shoplift Books (different languages),David Horvitz,Edition Taube,11.99
 CV003,Invisible Books,Claude Closky,Self-Published,10
@@ -586,5 +586,4 @@ CV573,Minority Rule,Ash Sarkar,,24
 CV574,Railway Flora,,,24
 CV575,Tumbling Ruins,Henrike Naumann,Distanz,24
 CV576,Aalmanach,Rada Leu,Amsel Verlag,15
-
-CV577,#2,James Hoff Marian Kaiser,NERO,10
+CV577,James Hoff,James Hoff Marian Kaiser,NERO,10
