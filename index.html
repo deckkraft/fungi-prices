@@ -175,6 +175,9 @@
             createItemCard(item, searchTerm = '') {
                 const highlightText = (text, term) => {
                     if (!term) return text;
+                    const regex = new RegExp('(' + term.replace(/[.*+?^${}()|[\]\\]/g, '\\            createItemCard(item, searchTerm = '') {
+                const highlightText = (text, term) => {
+                    if (!term) return text;
                     const regex = new RegExp('(' + term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
                     return text.replace(regex, '<span class="highlight">$1</span>');
                 };
@@ -193,6 +196,30 @@
                             '<div class="item-detail-line">' + author + '</div>' +
                             '<div class="item-detail-line">' + brand + '</div>' +
                         '</div>' +
+                    '</div>' +
+                    '<div class="item-price">' + price + '</div>' +
+                '</div>';
+            }') + ')', 'gi');
+                    return text.replace(regex, '<span class="highlight">$1</span>');
+                };
+
+                const title = highlightText(item.title || 'No title', searchTerm);
+                const author = item.author ? highlightText(item.author, searchTerm) : '';
+                const brand = item.brand ? highlightText(item.brand, searchTerm) : '';
+                const price = item.price ? 'CHF ' + parseFloat(item.price).toFixed(2) : 'Price not available';
+
+                let detailsHtml = '';
+                if (author) {
+                    detailsHtml += '<div class="item-detail-line">' + author + '</div>';
+                }
+                if (brand) {
+                    detailsHtml += '<div class="item-detail-line">' + brand + '</div>';
+                }
+
+                return '<div class="item-card">' +
+                    '<div class="item-info">' +
+                        '<div class="item-title">' + title + '</div>' +
+                        '<div class="item-details">' + detailsHtml + '</div>' +
                     '</div>' +
                     '<div class="item-price">' + price + '</div>' +
                 '</div>';
