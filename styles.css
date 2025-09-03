@@ -173,7 +173,7 @@ body {
 .item-price {
     font-size: 18px;
     font-weight: 700;
-    color: #00b894;
+    color: #000;
     text-align: right;
     white-space: nowrap;
 }
