@@ -50,208 +50,147 @@
     </div>
 
     <script>
-        class PriceChecker {
-            constructor() {
-                this.items = [];
-                this.filteredItems = [];
-                this.searchInput = document.getElementById('searchInput');
-                this.loadingMessage = document.getElementById('loadingMessage');
-                this.errorMessage = document.getElementById('errorMessage');
-                this.resultsContainer = document.getElementById('resultsContainer');
-                this.noResults = document.getElementById('noResults');
-                this.itemGrid = document.getElementById('itemGrid');
-                this.resultsCount = document.getElementById('resultsCount');
-                
-                this.init();
-            }
+        document.addEventListener('DOMContentLoaded', function() {
+            var searchInput = document.getElementById('searchInput');
+            var loadingMessage = document.getElementById('loadingMessage');
+            var errorMessage = document.getElementById('errorMessage');
+            var resultsContainer = document.getElementById('resultsContainer');
+            var noResults = document.getElementById('noResults');
+            var itemGrid = document.getElementById('itemGrid');
+            var resultsCount = document.getElementById('resultsCount');
+            var allItems = [];
 
-            async init() {
-                try {
-                    await this.loadCSV();
-                    this.setupEventListeners();
-                    this.displayResults(this.items);
-                    this.hideLoading();
-                } catch (error) {
-                    this.showError();
-                }
-            }
-
-            async loadCSV() {
-                const response = await fetch('items.csv');
-                if (!response.ok) {
-                    throw new Error('CSV file not found');
-                }
-                
-                const csvText = await response.text();
-                this.items = this.parseCSV(csvText);
-                
-                // Sort by SKU descending (newest first)
-                this.items.sort((a, b) => {
-                    const skuA = a.sku.toString();
-                    const skuB = b.sku.toString();
-                    return skuB.localeCompare(skuA, undefined, { numeric: true });
-                });
-            }
-
-            parseCSV(csvText) {
-                const lines = csvText.trim().split('\n');
-                const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-                const items = [];
-
-                for (let i = 1; i < lines.length; i++) {
-                    const values = this.parseCSVLine(lines[i]);
-                    if (values.length === headers.length) {
-                        const item = {};
-                        headers.forEach((header, index) => {
-                            item[header] = values[index].trim();
+            function loadData() {
+                fetch('items.csv')
+                    .then(function(response) {
+                        if (!response.ok) {
+                            throw new Error('Failed to load CSV');
+                        }
+                        return response.text();
+                    })
+                    .then(function(text) {
+                        var lines = text.split(/\r?\n/);
+                        
+                        for (var i = 1; i < lines.length; i++) {
+                            if (lines[i].trim()) {
+                                var values = lines[i].split(',');
+                                if (values.length >= 5) {
+                                    allItems.push({
+                                        sku: values[0] || '',
+                                        title: values[1] || '',
+                                        author: values[2] || '',
+                                        brand: values[3] || '',
+                                        price: values[4] || ''
+                                    });
+                                }
+                            }
+                        }
+                        
+                        allItems.sort(function(a, b) {
+                            return b.sku.localeCompare(a.sku, undefined, { numeric: true });
                         });
-                        items.push(item);
-                    }
-                }
-
-                return items;
+                        
+                        showItems(allItems);
+                    })
+                    .catch(function(error) {
+                        loadingMessage.style.display = 'none';
+                        errorMessage.style.display = 'block';
+                    });
             }
-
-            parseCSVLine(line) {
-                const result = [];
-                let current = '';
-                let inQuotes = false;
+            
+            function showItems(items) {
+                loadingMessage.style.display = 'none';
+                resultsContainer.style.display = 'block';
+                noResults.style.display = 'none';
                 
-                for (let i = 0; i < line.length; i++) {
-                    const char = line[i];
+                resultsCount.textContent = items.length + ' items';
+                
+                itemGrid.innerHTML = '';
+                
+                for (var i = 0; i < items.length; i++) {
+                    var item = items[i];
+                    var card = document.createElement('div');
+                    card.className = 'item-card';
                     
-                    if (char === '"') {
-                        inQuotes = !inQuotes;
-                    } else if (char === ',' && !inQuotes) {
-                        result.push(current);
-                        current = '';
+                    var info = document.createElement('div');
+                    info.className = 'item-info';
+                    
+                    var title = document.createElement('div');
+                    title.className = 'item-title';
+                    title.textContent = item.title || 'No title';
+                    info.appendChild(title);
+                    
+                    var details = document.createElement('div');
+                    details.className = 'item-details';
+                    
+                    if (item.author) {
+                        var authorLine = document.createElement('div');
+                        authorLine.className = 'item-detail-line';
+                        authorLine.textContent = item.author;
+                        details.appendChild(authorLine);
+                    }
+                    
+                    if (item.brand) {
+                        var brandLine = document.createElement('div');
+                        brandLine.className = 'item-detail-line';
+                        brandLine.textContent = item.brand;
+                        details.appendChild(brandLine);
+                    }
+                    
+                    info.appendChild(details);
+                    card.appendChild(info);
+                    
+                    var priceDiv = document.createElement('div');
+                    priceDiv.className = 'item-price';
+                    var priceNum = parseFloat(item.price);
+                    if (item.price && !isNaN(priceNum)) {
+                        priceDiv.textContent = 'CHF ' + priceNum.toFixed(2);
                     } else {
-                        current += char;
+                        priceDiv.textContent = 'Price not available';
+                    }
+                    card.appendChild(priceDiv);
+                    
+                    itemGrid.appendChild(card);
+                }
+            }
+            
+            function searchItems() {
+                var query = searchInput.value.toLowerCase().trim();
+                
+                if (!query) {
+                    showItems(allItems);
+                    return;
+                }
+                
+                var filtered = [];
+                for (var i = 0; i < allItems.length; i++) {
+                    var item = allItems[i];
+                    var searchText = (item.title + ' ' + item.author + ' ' + item.brand + ' ' + item.sku).toLowerCase();
+                    
+                    if (searchText.indexOf(query) >= 0) {
+                        filtered.push(item);
                     }
                 }
                 
-                result.push(current);
-                return result;
-            }
-
-            setupEventListeners() {
-                this.searchInput.addEventListener('input', (e) => {
-                    this.handleSearch(e.target.value);
-                });
-            }
-
-            handleSearch(query) {
-                if (!query.trim()) {
-                    this.displayResults(this.items);
-                    return;
+                if (filtered.length === 0) {
+                    resultsContainer.style.display = 'none';
+                    noResults.style.display = 'block';
+                } else {
+                    showItems(filtered);
                 }
-
-                const searchTerm = query.toLowerCase().trim();
-                this.filteredItems = this.items.filter(item => {
-                    return Object.values(item).some(value => 
-                        value.toString().toLowerCase().includes(searchTerm)
-                    );
-                });
-
-                this.displayResults(this.filteredItems, searchTerm);
             }
-
-            displayResults(items, searchTerm = '') {
-                if (items.length === 0 && searchTerm) {
-                    this.showNoResults();
-                    return;
-                }
-
-                this.hideNoResults();
-                this.showResults();
-                
-                this.resultsCount.textContent = items.length + ' item' + (items.length !== 1 ? 's' : '');
-                
-                this.itemGrid.innerHTML = items.map(item => 
-                    this.createItemCard(item, searchTerm)
-                ).join('');
+            
+            if (searchInput) {
+                searchInput.addEventListener('input', searchItems);
             }
-
-            createItemCard(item, searchTerm = '') {
-                const highlightText = (text, term) => {
-                    if (!term) return text;
-                    const regex = new RegExp('(' + term.replace(/[.*+?^${}()|[\]\\]/g, '\\            createItemCard(item, searchTerm = '') {
-                const highlightText = (text, term) => {
-                    if (!term) return text;
-                    const regex = new RegExp('(' + term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
-                    return text.replace(regex, '<span class="highlight">$1</span>');
-                };
-
-                const title = highlightText(item.title || 'No title', searchTerm);
-                const author = highlightText(item.author || 'Unknown author', searchTerm);
-                const brand = highlightText(item.brand || 'No brand', searchTerm);
-                const sku = highlightText(item.sku || 'No SKU', searchTerm);
-                const price = item.price ? '$' + parseFloat(item.price).toFixed(2) : 'Price not available';
-
-                return '<div class="item-card">' +
-                    '<div class="item-info">' +
-                        '<div class="item-title">' + title + '</div>' +
-                        '<div class="item-details">' +
-                            '<div class="item-detail-line">' + sku + '</div>' +
-                            '<div class="item-detail-line">' + author + '</div>' +
-                            '<div class="item-detail-line">' + brand + '</div>' +
-                        '</div>' +
-                    '</div>' +
-                    '<div class="item-price">' + price + '</div>' +
-                '</div>';
-            }') + ')', 'gi');
-                    return text.replace(regex, '<span class="highlight">$1</span>');
-                };
-
-                const title = highlightText(item.title || 'No title', searchTerm);
-                const author = item.author ? highlightText(item.author, searchTerm) : '';
-                const brand = item.brand ? highlightText(item.brand, searchTerm) : '';
-                const price = item.price ? 'CHF ' + parseFloat(item.price).toFixed(2) : 'Price not available';
-
-                let detailsHtml = '';
-                if (author) {
-                    detailsHtml += '<div class="item-detail-line">' + author + '</div>';
-                }
-                if (brand) {
-                    detailsHtml += '<div class="item-detail-line">' + brand + '</div>';
-                }
-
-                return '<div class="item-card">' +
-                    '<div class="item-info">' +
-                        '<div class="item-title">' + title + '</div>' +
-                        '<div class="item-details">' + detailsHtml + '</div>' +
-                    '</div>' +
-                    '<div class="item-price">' + price + '</div>' +
-                '</div>';
+            
+            // Set up clear button if it exists
+            var clearButton = document.getElementById('clearButton');
+            if (clearButton) {
+                clearButton.addEventListener('click', clearSearch);
             }
-
-            hideLoading() {
-                this.loadingMessage.style.display = 'none';
-            }
-
-            showError() {
-                this.loadingMessage.style.display = 'none';
-                this.errorMessage.style.display = 'block';
-            }
-
-            showResults() {
-                this.resultsContainer.style.display = 'block';
-                this.noResults.style.display = 'none';
-            }
-
-            showNoResults() {
-                this.resultsContainer.style.display = 'none';
-                this.noResults.style.display = 'block';
-            }
-
-            hideNoResults() {
-                this.noResults.style.display = 'none';
-            }
-        }
-
-        // Initialize the app when the page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            new PriceChecker();
+            
+            loadData();
         });
     </script>
 </body>
