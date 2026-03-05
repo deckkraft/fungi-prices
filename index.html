@@ -60,6 +60,49 @@
             var resultsCount = document.getElementById('resultsCount');
             var allItems = [];
 
+            function parseCSV(text) {
+                var rows = [];
+                var row = [];
+                var field = '';
+                var inQuotes = false;
+
+                for (var i = 0; i < text.length; i++) {
+                    var ch = text[i];
+                    var next = text[i + 1];
+
+                    if (inQuotes) {
+                        if (ch === '"' && next === '"') {
+                            field += '"';
+                            i++;
+                        } else if (ch === '"') {
+                            inQuotes = false;
+                        } else {
+                            field += ch;
+                        }
+                    } else {
+                        if (ch === '"') {
+                            inQuotes = true;
+                        } else if (ch === ',') {
+                            row.push(field.trim());
+                            field = '';
+                        } else if (ch === '\n' || (ch === '\r' && next === '\n')) {
+                            if (ch === '\r') i++;
+                            row.push(field.trim());
+                            if (row.length > 1 || row[0] !== '') rows.push(row);
+                            row = [];
+                            field = '';
+                        } else {
+                            field += ch;
+                        }
+                    }
+                }
+                // last row
+                row.push(field.trim());
+                if (row.length > 1 || row[0] !== '') rows.push(row);
+
+                return rows;
+            }
+
             function loadData() {
                 fetch('items.csv')
                     .then(function(response) {
@@ -69,20 +112,18 @@
                         return response.text();
                     })
                     .then(function(text) {
-                        var lines = text.split(/\r?\n/);
-                        
-                        for (var i = 1; i < lines.length; i++) {
-                            if (lines[i].trim()) {
-                                var values = lines[i].split(',');
-                                if (values.length >= 5) {
-                                    allItems.push({
-                                        sku: values[0] || '',
-                                        title: values[1] || '',
-                                        author: values[2] || '',
-                                        brand: values[3] || '',
-                                        price: values[4] || ''
-                                    });
-                                }
+                        var rows = parseCSV(text);
+
+                        for (var i = 1; i < rows.length; i++) {
+                            var values = rows[i];
+                            if (values.length >= 5) {
+                                allItems.push({
+                                    sku: values[0] || '',
+                                    title: values[1] || '',
+                                    author: values[2] || '',
+                                    brand: values[3] || '',
+                                    price: values[4] || ''
+                                });
                             }
                         }
                         
